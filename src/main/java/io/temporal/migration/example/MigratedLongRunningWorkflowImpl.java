@@ -5,6 +5,7 @@ import io.temporal.failure.ApplicationFailure;
 import io.temporal.workflow.Workflow;
 
 import java.time.Duration;
+import java.util.Objects;
 
 // MigratedLongRunningWorkflowImpl runs in the target namespace
 public class MigratedLongRunningWorkflowImpl implements LongRunningWorkflow{
@@ -37,7 +38,7 @@ public class MigratedLongRunningWorkflowImpl implements LongRunningWorkflow{
         //This just verifies the input value against the legacy workflow, failing if it didn't receive the correct one
         // This block of verification can be removed
         LongRunningWorkflowParams expect = this.verification.verify(params);
-        if(this.currentValue.value != expect.value && !expect.value.equals(params.value)) {
+        if(!Objects.equals(this.currentValue.value, expect.value) && !expect.value.equals(params.value)) {
             // this might fail since now we are resuming in target NS but ContinueAsNew might have race with a inbound signal
             String message = String.format("workflow '%s' expected '%s' but got input params of '%s'. Current value is '%s'",
                     Workflow.getInfo().getWorkflowId(),

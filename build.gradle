@@ -43,19 +43,25 @@ task execute(type: JavaExec) {
     mainClass = findProperty("mainClass") ?: ""
     classpath = sourceSets.main.runtimeClasspath
 }
-
-task startTargetWorker(type: JavaExec) {
-    mainClass = 'io.temporal.migration.example.TargetWorker'
+task setupWorkflows(type: JavaExec) {
+    mainClass = 'io.temporal.migration.example.SetupStarter'
     classpath = sourceSets.main.runtimeClasspath
 }
-
 task startLegacyWorker(type: JavaExec) {
     mainClass = 'io.temporal.migration.example.LegacyWorker'
     classpath = sourceSets.main.runtimeClasspath
 }
 
-task setupWorkflows(type: JavaExec) {
-    mainClass = 'io.temporal.migration.example.SetupStarter'
+
+task startInterceptingLegacyWorker(type: JavaExec) {
+    environment("SUPPORT_MIGRATION", "true")
+    environment("SUPPORT_INTERCEPTION","true")
+    mainClass = 'io.temporal.migration.example.LegacyWorker'
     classpath = sourceSets.main.runtimeClasspath
 }
+task startTargetWorker(type: JavaExec) {
+    mainClass = 'io.temporal.migration.example.TargetWorker'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
 

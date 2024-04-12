@@ -47,7 +47,7 @@ public class MigrationWorkflowInboundCallsInterceptor extends WorkflowInboundCal
             return value.get();
         } catch( CanceledFailure e) {
             // if workflow does not need to expose a value for resuming in another namespace
-            QueryOutput q = handleQuery(new QueryInput(Constants.MIGRATION_STATE_QUERY_NAME, null));
+            QueryOutput q = handleQuery(new QueryInput(Constants.MIGRATION_STATE_QUERY_NAME, null, null));
             value.set(new WorkflowOutput(q.getResult()));
             Object migrateableValue = value.get().getResult();
             migrator.migrate(new MigrateCommand(info.getWorkflowType(), info.getWorkflowId(), migrateableValue));
