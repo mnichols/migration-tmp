@@ -41,7 +41,7 @@ public class MigrateableLongRunningWorkflowImpl implements  LongRunningWorkflow,
         this.setCurrentValue(newValue);
         // this could be used as the migration method that continues as new
         // the question is whether this would drain off soon enough
-        acts.execStep2(newValue);
+        //acts.execStep2(newValue);
     }
 
 

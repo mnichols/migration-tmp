@@ -7,6 +7,7 @@ import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
 import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionResponse;
 import io.temporal.api.workflowservice.v1.WorkflowServiceGrpc;
 import io.temporal.client.*;
+import io.temporal.migration.interceptor.Constants;
 import io.temporal.migration.interceptor.ForwardSignalCommand;
 import io.temporal.migration.interceptor.MigrateCommand;
 import io.temporal.migration.interceptor.Migrator;
@@ -88,9 +89,13 @@ public class MigrationImpl implements Migration, Migrator {
                 //logger.info("workflow {} not found...starting in target", cmd.workflowId);
                 WorkflowStub workflow = this.targetNamespaceClient.newUntypedWorkflowStub(cmd.workflowType,
                         WorkflowOptions.newBuilder().
-                        setWorkflowId(cmd.workflowId).
-                        setTaskQueue(AppConfig.TASK_QUEUE).
-                        build());
+                                setWorkflowId(cmd.workflowId).
+                                setTaskQueue(AppConfig.TASK_QUEUE).
+                                build());
+
+                // getting the value at the last possible moment...use??
+//                Object args = this.legacyNamespaceClient.
+//                        newUntypedWorkflowStub(cmd.workflowId).query(Constants.MIGRATION_STATE_QUERY_NAME,Object.class);
                 workflow.start(cmd.arguments);
                 return;
             }

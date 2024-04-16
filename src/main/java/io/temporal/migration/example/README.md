@@ -36,10 +36,11 @@ ID_SEED="foo"
 1. `./gradlew setupWorkflows` : this executes `{WORKFLOW_COUNT}` workflows and starts a [Simulator](/src/main/java/io.temporal.migration.signaled/Simulation) that sends a timestamp to each workflow every 500ms.
 1. `./gradlew startLegacyWorker` : this represents your code as it is being executed _today_ in your own Temporal cluster.
 1. Open `localhost:8233/namespaces/default`.
-    1. Observe created workflows are suspended and observe `callGiraffe` signals being sent to those workflows every 500ms.
-1. Shut down the `startLegacyWorker` command
+    1. Observe created workflows are suspended and observe `callThat` signals being sent to those workflows every 500ms.
+1. Shut down the `startLegacyWorker` process
 1. `SUPPORT_MIGRATION=true SUPPORT_INTERCEPTION=true ./gradlew startLegacyWorker`: This represents executing the workflow extended to support the required Query in your legacy environment.
-1. In a separate terminal: `./gradlew startTargetWorker`: This represents the old code executed in the [target Namespace](/src/main/java/io.temporal.migration.signaled/TargetWorker).
+1. Run `./gradlew startInterceptingLegacyWorker`: This represents you starting the legacy worker with the interceptor registered, ready to receive the batch signal.
+2. In a separate terminal: `./gradlew startTargetWorker`: This represents the updated code executed in the [target Namespace](/src/main/java/io.temporal.migration.signaled/TargetWorker).
 1. ```
    # Send a batch signal job to all workflows of this Type to perform the migration!!
    temporal workflow signal \

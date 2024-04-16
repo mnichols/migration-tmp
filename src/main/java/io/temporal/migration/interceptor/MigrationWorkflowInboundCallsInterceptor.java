@@ -45,8 +45,14 @@ public class MigrationWorkflowInboundCallsInterceptor extends WorkflowInboundCal
             this.outInterceptor.setScope(scope);
             scope.run();
             return value.get();
+            // all failures in other SDKs
+            // cancellation might actually be an inner exception
+            // see how workflow cancellation thru activity failure with cancellation
         } catch( CanceledFailure e) {
             // if workflow does not need to expose a value for resuming in another namespace
+            // run this entire block inside a DetachedScope?? does SDK treat cancellation as a state or a request?
+            // it would be best to do so regardless here
+            // temporal doesnt support canceling twice...you could never double cancel a workflow
             QueryOutput q = handleQuery(new QueryInput(Constants.MIGRATION_STATE_QUERY_NAME, null, null));
             value.set(new WorkflowOutput(q.getResult()));
             Object migrateableValue = value.get().getResult();
@@ -55,14 +61,20 @@ public class MigrationWorkflowInboundCallsInterceptor extends WorkflowInboundCal
             return value.get();
         }
     }
+    /*
+    chad notes
+    1. test cases for longrunning activity...what happens within a workflow that has such a thing?
+    2. test long running signal handlers that are not returning
+     */
 
     @Override
     public void handleSignal(SignalInput input) {
         WorkflowInfo info = Workflow.getInfo();
-        if(!migrated.get().booleanValue()) {
+        if(!migrated.get()) {
             super.handleSignal(input);
             return;
         }
+        logger.info("forwarding signal {} for wid {} with {}", input.getSignalName(),info.getWorkflowId(), input.getArguments());
         migrator.forwardSignal(new ForwardSignalCommand(info.getWorkflowType(),
                 info.getWorkflowId(),
                 input.getSignalName(),

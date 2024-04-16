@@ -31,7 +31,7 @@ public class LongRunningWorkflowImpl implements LongRunningWorkflow {
     public void callThat(String newValue) {
         this.setCurrentValue(newValue);
         // TODO move into workflow thread
-        acts.execStep2(newValue);
+       // acts.execStep2(newValue);
     }
 
     public void setCurrentValue(String value) {

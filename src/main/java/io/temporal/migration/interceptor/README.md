@@ -30,3 +30,15 @@ Workflows in the legacy Namespace will be `Completed` (swallowing the `CanceledF
 1. Configure your Workers servicing the *legacy* namespace to use the [Worker Interceptor](MigrationWorkerInterceptor.java), passing in your `Migrator` implementation. 
    1. See the [sample](../example/LegacyWorker.java) for configuring the Worker with an interceptor.
 
+## What happens to Signals coming in while migration is taking place?
+
+If a Signal is received by Temporal service while the interceptor is invoking your `Migrator` implementation, the Temporal
+service will reply with an `UnhandledCommand` error when the current Task tries to Complete. This will allow the Worker
+to get the buffered signal(s), apply them to the Workflow Execution, then retry the Cancel task. You'll see something like this
+in the Web UI for the execution:
+
+> Unhandled Command
+
+> The Workflow Task failed because there are new available events since the last Workflow Task started. A retry Workflow Task has been scheduled and the Workflow will have a chance to handle those new events.
+
+<img margin="auto" max-width="200px" src="unhandledcommand.png"/>

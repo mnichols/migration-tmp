@@ -48,9 +48,9 @@ public class LegacyWorker {
     final WorkerInterceptor workerInterceptor = new MigrationWorkerInterceptor((Migrator) migration);
     WorkerFactoryOptions wfo;
     if(System.getenv("SUPPORT_INTERCEPTION") != null) {
-      wfo = WorkerFactoryOptions.newBuilder().setWorkerInterceptors(workerInterceptor).build();
+      wfo = WorkerFactoryOptions.newBuilder().setWorkerInterceptors(workerInterceptor).setMaxWorkflowThreadCount(2).build();
     } else {
-      wfo = WorkerFactoryOptions.newBuilder().build();
+      wfo = WorkerFactoryOptions.newBuilder().setMaxWorkflowThreadCount(2).build();
     }
 
     WorkerFactory factory = WorkerFactory.newInstance(clients.getLegacyClient(), wfo);    /*
