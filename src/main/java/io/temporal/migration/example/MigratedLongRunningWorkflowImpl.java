@@ -2,6 +2,7 @@ package io.temporal.migration.example;
 
 import io.temporal.activity.ActivityOptions;
 import io.temporal.failure.ApplicationFailure;
+import io.temporal.workflow.ContinueAsNewOptions;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,10 @@ public class MigratedLongRunningWorkflowImpl implements LongRunningWorkflow{
 
     @Override
     public String execute(LongRunningWorkflowParams params)  {
+        /*
+
+         */
+
         this.setCurrentValue(params.value);
 
         //This just verifies the input value against the legacy workflow, failing if it didn't receive the correct one
@@ -86,6 +91,7 @@ public class MigratedLongRunningWorkflowImpl implements LongRunningWorkflow{
                 expect.value,
                 params.value,
                 this.currentValue.value);
+
         throw ApplicationFailure.newFailure(message,
                 "verificationFailure");
     }

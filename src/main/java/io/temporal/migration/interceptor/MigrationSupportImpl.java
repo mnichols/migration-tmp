@@ -1,4 +1,4 @@
-package io.temporal.migration.example;
+package io.temporal.migration.interceptor;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -10,9 +10,6 @@ import io.temporal.api.workflowservice.v1.WorkflowServiceGrpc;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowStub;
 import io.temporal.failure.ApplicationFailure;
-import io.temporal.migration.interceptor.Constants;
-import io.temporal.migration.interceptor.PullLegacyExecutionRequest;
-import io.temporal.migration.interceptor.PullLegacyExecutionResponse;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,26 +17,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class VerificationImpl implements Verification{
-    private static Logger logger = LoggerFactory.getLogger(VerificationImpl.class);
+public class MigrationSupportImpl implements MigrationSupport{
+    private static Logger logger = LoggerFactory.getLogger(MigrationSupportImpl.class);
     private final WorkflowClient legacyClient;
 
-    public VerificationImpl(WorkflowClient legacyClient) {
+    public MigrationSupportImpl(WorkflowClient legacyClient) {
         this.legacyClient = legacyClient;
     }
 
-    @Override
-    public LongRunningWorkflowParams verify(LongRunningWorkflowParams sourceValue) {
-        // TODO pass in workflow params
-
-
-        QueryableLongRunningWorkflow workflow;
-        workflow = legacyClient.newWorkflowStub(QueryableLongRunningWorkflow.class, Activity.getExecutionContext().getInfo().getWorkflowId());
-
-        LongRunningWorkflowParams lastKnownValue = workflow.getMigrationState();
-        return lastKnownValue;
-
-    }
     private void sleep(int seconds) {
         try {
             Thread.sleep(TimeUnit.SECONDS.toMillis(seconds));
@@ -50,7 +35,7 @@ public class VerificationImpl implements Verification{
     }
 
     @Override
-    public PullLegacyExecutionResponse pull(PullLegacyExecutionRequest cmd) {
+    public PullLegacyExecutionResponse pullLegacyExecution(PullLegacyExecutionRequest cmd) {
 
         if (Objects.equals(cmd.getNamespace(), "")) {
             cmd.setNamespace(this.legacyClient.getOptions().getNamespace());
