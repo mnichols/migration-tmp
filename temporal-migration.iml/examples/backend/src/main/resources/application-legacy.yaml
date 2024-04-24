@@ -1,0 +1,19 @@
+server:
+  port: 3030
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: temporal-migration
+  temporal:
+    workers:
+      - task-queue: default
+        workflow-classes:
+          - io.temporal.examples.backend.MigrateableWorkflowImpl
+        activity-beans:
+          - migration-support
+    connection:
+      target: 127.0.0.1:7233
+      target.namespace: default
+  migration:
+    state-query-name: 'getMigrationState'
