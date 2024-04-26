@@ -19,11 +19,16 @@ public class MigratedWorkflowImpl implements MigrateableWorkflow {
     private MigrateableWorkflowParams params;
 
     public MigratedWorkflowImpl() {
+        this.params = new MigrateableWorkflowParams();
+        this.params.setValue("EMPTY");
+        this.params.setExecutionState(new ExecutionState(false));
+
         this.acts = Workflow.newActivityStub(
                 MigrationSupport.class,
                 ActivityOptions.
                         newBuilder().
-                        setStartToCloseTimeout(Duration.ofSeconds(10)).
+                        setStartToCloseTimeout(Duration.ofSeconds(600)).
+                        setHeartbeatTimeout(Duration.ofSeconds(10)).
                         build());
     }
 
@@ -37,7 +42,7 @@ public class MigratedWorkflowImpl implements MigrateableWorkflow {
         if(params.getExecutionState() == null || !params.getExecutionState().isMigrated()) {
             WorkflowInfo info = Workflow.getInfo();
             PullLegacyExecutionResponse pullLegacyExecutionResponse = this.acts.pullLegacyExecutionInfo(new PullLegacyExecutionRequest(
-                    info.getNamespace(),
+                    null,
                     info.getWorkflowType(),
                     info.getWorkflowId(),
                     2
@@ -49,6 +54,9 @@ public class MigratedWorkflowImpl implements MigrateableWorkflow {
             ObjectMapper mapper = new ObjectMapper();
             MigrateableWorkflowParams migratedParams = mapper.convertValue(pullLegacyExecutionResponse.getMigrationState(), MigrateableWorkflowParams.class);
             MigrateableWorkflow stub = Workflow.newContinueAsNewStub(MigrateableWorkflow.class);
+            if(migratedParams.getExecutionState() == null) {
+                migratedParams.setExecutionState(new ExecutionState(true));
+            }
             return stub.execute(migratedParams);
         }
 

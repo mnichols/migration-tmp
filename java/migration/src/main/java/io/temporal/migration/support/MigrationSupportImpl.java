@@ -15,6 +15,7 @@ import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.spring.boot.ActivityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -29,10 +30,11 @@ public class MigrationSupportImpl implements MigrationSupport {
     private WorkflowClient targetWorkflowClient;
     private  String migrationStateQueryName;
 
-    public MigrationSupportImpl(WorkflowClient legacyWorkflowClient, WorkflowClient targetWorkflowClient, @Value("${spring.migration.state-query-name}") String migrationStateQueryName) {
-        this.legacyWorkflowClient = legacyWorkflowClient;
-        this.targetWorkflowClient = targetWorkflowClient;
-        this.migrationStateQueryName = migrationStateQueryName;
+    public MigrationSupportImpl(Clients clients, MigrationProperties migrationProperties) {
+
+        this.legacyWorkflowClient = clients.getLegacyClient();
+        this.targetWorkflowClient = clients.getTargetClient();
+        this.migrationStateQueryName = migrationProperties.getStateQueryName();
     }
 
     private void sleep(int seconds) {
@@ -50,7 +52,7 @@ public class MigrationSupportImpl implements MigrationSupport {
         if(cmd.getPollingDurationSecs() == 0) {
             cmd.setPollingDurationSecs(2);
         }
-        if (Objects.equals(cmd.getNamespace(), "")) {
+        if (cmd.getNamespace() == null || Objects.equals(cmd.getNamespace(), "")) {
             cmd.setNamespace(this.legacyWorkflowClient.getOptions().getNamespace());
         }
         if (Objects.equals(cmd.getWorkflowId(), "")) {
@@ -61,15 +63,18 @@ public class MigrationSupportImpl implements MigrationSupport {
         WorkflowStub legacyWF = this.legacyWorkflowClient.newUntypedWorkflowStub(cmd.getWorkflowId());
         WorkflowServiceStubs svc = this.legacyWorkflowClient.getWorkflowServiceStubs();
         WorkflowServiceGrpc.WorkflowServiceBlockingStub stub = svc.blockingStub();
+        logger.info("pulling migrationState from legacy namespace {}", cmd.getNamespace());
         DescribeWorkflowExecutionRequest req = DescribeWorkflowExecutionRequest.newBuilder().
                 setNamespace(cmd.getNamespace()).
                 setExecution(legacyWF.getExecution()).build();
 
         while (true) {
             try {
+                Activity.getExecutionContext().heartbeat(resp.getElapsedTime());
                 DescribeWorkflowExecutionResponse wfResp = stub.describeWorkflowExecution(req);
                 WorkflowExecutionStatus stat = wfResp.getWorkflowExecutionInfo().getStatus();
-                if (wfResp.getWorkflowExecutionInfo().getStatus() == WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED) {
+                logger.info("received legacy execution status for {}/{}/{} = {}", cmd.getNamespace(), cmd.getWorkflowType(),cmd.getWorkflowId(), stat);
+                if (Objects.equals(wfResp.getWorkflowExecutionInfo().getStatus(),WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED)) {
                     Object out = legacyWF.query(migrationStateQueryName, Object.class);
                     resp.setMigrationState(out);
                     resp.setStatus(stat);
@@ -78,9 +83,10 @@ public class MigrationSupportImpl implements MigrationSupport {
                 }
                 sleep(cmd.getPollingDurationSecs());
                 resp.setElapsedTime(resp.getElapsedTime() + cmd.getPollingDurationSecs());
+
             } catch (StatusRuntimeException e) {
                 Status.Code rstat = e.getStatus().getCode();
-                if (Objects.requireNonNull(rstat) == Status.Code.NOT_FOUND) {
+                if (Objects.equals(rstat,Status.Code.NOT_FOUND)) {
                     throw ApplicationFailure.newNonRetryableFailure("workflow execution not found", "not found");
                 }
             }
@@ -103,7 +109,7 @@ public class MigrationSupportImpl implements MigrationSupport {
         try {
             DescribeWorkflowExecutionResponse ignore = stub.describeWorkflowExecution(req);
         } catch(StatusRuntimeException e) {
-            if(e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+            if(Objects.equals(e.getStatus().getCode(),Status.Code.NOT_FOUND)) {
                 logger.info("workflow {} not found.starting in target", cmd.getWorkflowId());
                 WorkflowStub workflow = this.targetWorkflowClient.newUntypedWorkflowStub(cmd.getWorkflowType(),
                         WorkflowOptions.newBuilder().
